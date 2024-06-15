@@ -13,7 +13,7 @@ import torchaudio
 import numpy as np
 import torch.nn.functional as F
 
-from trainCLS.VFBLCLS import FBLCLS
+from trainCLS.FVFBLCLS import FBLCLS
 
 
 @torch.no_grad()
