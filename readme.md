@@ -29,11 +29,11 @@ Note: Only label "AP" in the "SP" label of the original tg file, and accuracy is
     python textgrid-add-ap.py --ckpt_path model_folder/xx.ckpt --wav_dir wav_dir --tg_dir tg_dir --tg_out_dir tg_out_dir
     
     Option:
-        --ckpt_path      str  Path to the checkpoint
-        --wav_dir       str  Wav file folder (*.wav).
-        --tg_dir        str  Textgrid files (*.TextGrid).
-        --tg_out_dir    str  Output path of tg file after labeling AP.
-        --ap_threshold  str  Respiratory probability recognition threshold.
-        --ap_dur        str  Minimum breathing time, in seconds.     
-        --sp_dur        str  Minimum slice time, in seconds.    
+        --ckpt_path     str    Path to the checkpoint
+        --wav_dir       str    Wav file folder (*.wav).
+        --tg_dir        str    Textgrid files (*.TextGrid).
+        --tg_out_dir    str    Output path of tg file after labeling AP.
+        --ap_threshold  float  default: 0.4   Respiratory probability recognition threshold.
+        --ap_dur        float  default: 0.08  The shortest duration of breathing, discarded below this threshold, in seconds.     
+        --sp_dur        float  default: 0.1   SP fragments below this threshold will be adsorbed onto adjacent AP, in seconds.   
     ```
