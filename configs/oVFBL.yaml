@@ -1,0 +1,56 @@
+
+
+binary_index_name: data
+binary_index_dir: BL_data
+pre_data_type: BL
+task_cls: trainCLS.VFBLCLS.FBLCLS
+
+
+
+
+seed: 114514
+
+
+
+
+
+
+
+mel_bin: 128
+audio_sample_rate: 44100
+mel_fft_size: 2048
+mel_win_size: 2048
+hop_size: 882
+fmax: 8000
+fmin: 20
+spec_win: 1024
+
+
+model_arg:
+  encoder_conform_attention_drop: 0.05
+  encoder_conform_attention_heads: 8
+  encoder_conform_attention_heads_dim: 64
+  encoder_conform_dim: 512
+  encoder_conform_ffn_latent_drop: 0.05
+  encoder_conform_ffn_out_drop: 0.05
+  encoder_conform_kernel_size: 31
+  mel_scal: 1
+  norm_type: FULL_CF
+  num_layers: 6
+  use_final_norm: true
+#    dim: 512
+#    num_heads: 8
+#    head_dim: 64
+#    lays: 6
+#    drop_ffn_latent: 0.01
+#    drop_ffn_out: 0.01
+#    attention_out_drop: 0.01
+#    merge_kernel_size: 0
+#    conv_kernel_size: 11
+
+pad_strategy: max
+prob_breathe: 0.5
+spec_type: spec # mel spec
+
+
+
