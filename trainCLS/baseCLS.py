@@ -6,7 +6,7 @@ import lightning as PL
 # from libs.build_model import build_optimizer, build_scheduler
 import torch.utils.data
 
-from model_trainer.basic_lib.build_model import build_optimizer, build_scheduler
+import pytorch_lightning
 
 
 class BasicCLS(PL.LightningModule):
@@ -31,19 +31,7 @@ class BasicCLS(PL.LightningModule):
         raise RuntimeError("")
 
     def configure_optimizers(self):
-        optm = build_optimizer(self, config=self.config)
-        scheduler = build_scheduler(optm, config=self.config)
-        if scheduler is None:
-            return optm
-        self.lrs=scheduler
-        return {
-            "optimizer": optm,
-            "lr_scheduler": {
-                "scheduler": scheduler,
-                "interval": "step",
-                "frequency": 1
-            }
-        }
+        return torch.optim.SGD(self.parameters(), lr=0.01)
 
     def train_dataloader(self):
         prefetch_factor = self.config['train_dataloader_prefetch_factor']
