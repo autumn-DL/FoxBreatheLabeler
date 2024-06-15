@@ -33,7 +33,7 @@ Note: Only label "AP" in the "SP" label of the original tg file, and accuracy is
         --wav_dir       str    Wav file folder (*.wav).
         --tg_dir        str    Textgrid files (*.TextGrid).
         --tg_out_dir    str    Output path of tg file after labeling AP.
-        --ap_threshold  float  default: 0.4   Respiratory probability recognition threshold.
-        --ap_dur        float  default: 0.08  The shortest duration of breathing, discarded below this threshold, in seconds.     
-        --sp_dur        float  default: 0.1   SP fragments below this threshold will be adsorbed onto adjacent AP, in seconds.   
+        --ap_threshold  float  default: 0.4   Respiratory probability recognition threshold.  (Option)
+        --ap_dur        float  default: 0.08  The shortest duration of breathing, discarded below this threshold, in seconds. (Option)
+        --sp_dur        float  default: 0.1   SP fragments below this threshold will be adsorbed onto adjacent AP, in seconds.   (Option)
     ```
