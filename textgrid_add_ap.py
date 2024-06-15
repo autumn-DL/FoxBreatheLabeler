@@ -1,8 +1,6 @@
 import glob
 import os.path
 import pathlib
-import re
-from pathlib import Path
 from typing import Union
 
 import click
@@ -13,26 +11,6 @@ import yaml
 from matplotlib import pyplot as plt
 
 from trainCLS.FVFBLCLS import FBLCLS
-
-
-def get_latest_checkpoint_path(work_dir):
-    if not isinstance(work_dir, Path):
-        work_dir = Path(work_dir)
-    if not work_dir.exists():
-        return None
-
-    last_step = -1
-    last_ckpt_name = None
-
-    for ckpt in work_dir.glob('model_ckpt_steps_*.ckpt'):
-        search = re.search(r'steps_\d+', ckpt.name)
-        if search:
-            step = int(search.group(0)[6:])
-            if step > last_step:
-                last_step = step
-                last_ckpt_name = str(ckpt)
-
-    return last_ckpt_name if last_ckpt_name is not None else None
 
 
 def pbase_config(topc: dict, basec_list: list[str]) -> dict:
@@ -179,22 +157,21 @@ def find_overlapping_segments(start, end, segments, sp_dur):
 
 @torch.no_grad()
 @click.command(help='')
-@click.option('--ckpt_dir', required=True, metavar='DIR', help='Path to the checkpoint and config file')
+@click.option('--ckpt_path', required=True, metavar='DIR', help='Path to the checkpoint')
 @click.option('--wav_dir', required=True, metavar='DIR', help='Wav files')
 @click.option('--tg_dir', required=True, metavar='DIR', help='Textgrid files')
 @click.option('--tg_out_dir', required=True, metavar='DIR', help='Textgrid output dir')
 @click.option('--ap_threshold', required=False, default=0.4, help='Respiratory probability recognition threshold')
 @click.option('--ap_dur', required=False, default=0.08, help='Minimum breathing time, in seconds')
 @click.option('--sp_dur', required=False, default=0.1, help='Minimum slice time, in seconds')
-def export(ckpt_dir, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur):
-    assert ckpt_dir is not None, "Checkpoint directory (ckpt_dir) cannot be None"
+def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur):
+    assert ckpt_path is not None, "Checkpoint directory (ckpt_dir) cannot be None"
     assert wav_dir is not None, "WAV directory (wav_dir) cannot be None"
     assert tg_dir is not None, "TextGrid directory (tg_dir) cannot be None"
     assert tg_out_dir is not None, "TextGrid output directory (tg_out_dir) cannot be None"
     assert tg_dir != tg_out_dir, ("TextGrid directory (tg_dir) and TextGrid output directory (tg_out_dir) cannot be "
                                   "the same")
 
-    ckpt_path = get_latest_checkpoint_path(ckpt_dir)
     config_file = pathlib.Path(ckpt_path).with_name('config.yaml')
 
     assert os.path.exists(ckpt_path), f"Checkpoint path does not exist: {ckpt_path}"

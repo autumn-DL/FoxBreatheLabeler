@@ -26,10 +26,10 @@ Note: Only label "AP" in the "SP" label of the original tg file, and accuracy is
 
 2.  Generate AP labels by running textgrid-add-ap
     ```bash
-    python textgrid-add-ap.py --ckpt_dir model_folder --wav_dir wav_dir --tg_dir tg_dir --tg_out_dir tg_out_dir
+    python textgrid-add-ap.py --ckpt_path model_folder/xx.ckpt --wav_dir wav_dir --tg_dir tg_dir --tg_out_dir tg_out_dir
     
     Option:
-        --ckpt_dir      str  Path to the checkpoint and config file
+        --ckpt_path      str  Path to the checkpoint
         --wav_dir       str  Wav file folder (*.wav).
         --tg_dir        str  Textgrid files (*.TextGrid).
         --tg_out_dir    str  Output path of tg file after labeling AP.
