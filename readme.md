@@ -6,6 +6,8 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
 
 Note: Only label "AP" in the "SP" label of the original tg file, and accuracy is based on the original annotation file.
 
+[Cpp Version (Beta)](https://github.com/openvpi/dataset-tools/releases/tag/20240617.01)
+
 ## How to use
 
 0. If using [SOFA](https://github.com/qiuqiao/SOFA) to generate textgrid annotations
