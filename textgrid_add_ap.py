@@ -9,6 +9,7 @@ import torch
 import torchaudio
 import yaml
 from matplotlib import pyplot as plt
+from tqdm import tqdm
 
 from trainCLS.FVFBLCLS import FBLCLS
 
@@ -54,15 +55,13 @@ def get_music_chunk(
         hop_length=512,
         pad_mode="constant",
 ):
-    '''
-
+    """
     :param y: T
     :param frame_length: int
     :param hop_length: int
     :param pad_mode:
     :return: T
-    '''
-    # padding = (int(frame_length // 2), int(frame_length // 2))
+    """
     padding = (int((frame_length - hop_length) // 2),
                int((frame_length - hop_length + 1) // 2))
 
@@ -184,10 +183,12 @@ def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur)
     model = FBLCLS(config)
     model.load_state_dict(torch.load(ckpt_path, map_location='cpu')['model'])
     model.eval()
-    model = model.cuda()
+
+    if torch.cuda.is_available():
+        model = model.cuda()
 
     tg_files = glob.glob(f'{tg_dir}/*.TextGrid')
-    for tg_file in tg_files:
+    for tg_file in tqdm(tg_files):
         filename = os.path.basename(tg_file)
         filename, _ = os.path.splitext(filename)
         wav_path = f'{wav_dir}/{filename}.wav'
@@ -199,7 +200,9 @@ def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur)
                 audio = torchaudio.transforms.Resample(sr, config['audio_sample_rate'])(audio)
 
             mel = get_music_chunk(audio[0], frame_length=config['spec_win'], hop_length=config['hop_size']).unsqueeze(0)
-            ap_probability = model(mel.cuda())
+            if torch.cuda.is_available():
+                mel = mel.cuda()
+            ap_probability = model(mel)
             ap_probability = torch.sigmoid(ap_probability)
 
             sxp = ap_probability.cpu().numpy()[0][0]
@@ -214,9 +217,14 @@ def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur)
             phones = textgrid[1]
 
             words_dict = {}
+            word_cursor = 0
             for interval in words:
+                if interval.minTime > word_cursor:
+                    words_dict[word_cursor] = {"start": word_cursor, "end": interval.minTime,
+                                               "text": "", "phones": []}
                 words_dict[interval.minTime] = {"start": interval.minTime, "end": interval.maxTime,
                                                 "text": interval.mark, "phones": []}
+                word_cursor = interval.maxTime
 
             for interval in words:
                 word_start = interval.minTime
@@ -229,7 +237,7 @@ def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur)
 
             out = []
             for k, v in words_dict.items():
-                if v['text'] == "SP":
+                if v['text'] == "SP" or v['text'] == "":
                     sp_start = v['start']
                     sp_end = v['end']
                     overlapping_segments = find_overlapping_segments(sp_start, sp_end, segments, sp_dur)
@@ -254,7 +262,7 @@ def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur)
                                         "text": "AP"})
                     else:
                         cursor = sp_start
-                        for i, SP_seg in enumerate(overlapping_segments):
+                        for i in range(len(overlapping_segments)):
                             ap_start, ap_end = overlapping_segments[i]
 
                             if ap_start > cursor:
