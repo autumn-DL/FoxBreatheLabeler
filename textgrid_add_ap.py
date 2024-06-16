@@ -62,6 +62,7 @@ def get_music_chunk(
     :param pad_mode:
     :return: T
     """
+    # padding = (int(frame_length // 2), int(frame_length // 2))
     padding = (int((frame_length - hop_length) // 2),
                int((frame_length - hop_length + 1) // 2))
 
@@ -161,8 +162,10 @@ def find_overlapping_segments(start, end, segments, sp_dur):
 @click.option('--tg_dir', required=True, metavar='DIR', help='Textgrid files')
 @click.option('--tg_out_dir', required=True, metavar='DIR', help='Textgrid output dir')
 @click.option('--ap_threshold', required=False, default=0.4, help='Respiratory probability recognition threshold')
-@click.option('--ap_dur', required=False, default=0.08, help='Minimum breathing time, in seconds')
-@click.option('--sp_dur', required=False, default=0.1, help='Minimum slice time, in seconds')
+@click.option('--ap_dur', required=False, default=0.08, help='The shortest duration of breathing, discarded below '
+                                                             'this threshold, in seconds')
+@click.option('--sp_dur', required=False, default=0.1, help='SP fragments below this threshold will adsorb to '
+                                                            'adjacent AP, in seconds')
 def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur):
     assert ckpt_path is not None, "Checkpoint directory (ckpt_dir) cannot be None"
     assert wav_dir is not None, "WAV directory (wav_dir) cannot be None"
