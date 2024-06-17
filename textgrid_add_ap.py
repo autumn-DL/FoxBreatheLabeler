@@ -154,6 +154,9 @@ def find_overlapping_segments(start, end, segments, sp_dur):
 
     return merged_segments
 def start():
+    import random
+    if random.random() > 0.01:
+        return
 
     print(r'''          _____                    _____                    _____  
          /\    \                  /\    \                  /\    \ 
