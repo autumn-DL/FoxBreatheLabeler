@@ -8,6 +8,8 @@ Note: Only label "AP" in the "SP" label of the original tg file, and accuracy is
 
 [Cpp Version (Beta)](https://github.com/openvpi/dataset-tools/releases/tag/20240617.01)
 
+The CPP version has a UI interface that provides a smaller volume for downloading quantization models, but cannot be accelerated using a graphics card.
+
 ## How to use
 
 0. If using [SOFA](https://github.com/qiuqiao/SOFA) to generate textgrid annotations
