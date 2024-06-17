@@ -153,34 +153,7 @@ def find_overlapping_segments(start, end, segments, sp_dur):
     merged_segments.append((current_start, current_end))
 
     return merged_segments
-def start():
-    import random
-    if random.random() > 0.01:
-        return
 
-    print(r'''          _____                    _____                    _____  
-         /\    \                  /\    \                  /\    \ 
-        /::\    \                /::\    \                /::\____\
-       /::::\    \              /::::\    \              /:::/    /
-      /::::::\    \            /::::::\    \            /:::/    / 
-     /:::/\:::\    \          /:::/\:::\    \          /:::/    /  
-    /:::/__\:::\    \        /:::/__\:::\    \        /:::/    /   
-   /::::\   \:::\    \      /::::\   \:::\    \      /:::/    /    
-  /::::::\   \:::\    \    /::::::\   \:::\    \    /:::/    /     
- /:::/\:::\   \:::\    \  /:::/\:::\   \:::\ ___\  /:::/    /      
-/:::/  \:::\   \:::\____\/:::/__\:::\   \:::|    |/:::/____/       
-\::/    \:::\   \::/    /\:::\   \:::\  /:::|____|\:::\    \       
- \/____/ \:::\   \/____/  \:::\   \:::\/:::/    /  \:::\    \      
-          \:::\    \       \:::\   \::::::/    /    \:::\    \     
-           \:::\____\       \:::\   \::::/    /      \:::\    \    
-            \::/    /        \:::\  /:::/    /        \:::\    \   
-             \/____/          \:::\/:::/    /          \:::\    \  
-                               \::::::/    /            \:::\    \ 
-                                \::::/    /              \:::\____\
-                                 \::/____/                \::/    /
-                                  ~~                       \/____/ 
-                                                                   ''')
-    print('\n')
 
 @torch.no_grad()
 @click.command(help='')
@@ -194,7 +167,7 @@ def start():
 @click.option('--sp_dur', required=False, default=0.1, help='SP fragments below this threshold will adsorb to '
                                                             'adjacent AP, in seconds')
 def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur):
-    start()
+
     assert ckpt_path is not None, "Checkpoint directory (ckpt_dir) cannot be None"
     assert wav_dir is not None, "WAV directory (wav_dir) cannot be None"
     assert tg_dir is not None, "TextGrid directory (tg_dir) cannot be None"
