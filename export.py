@@ -55,7 +55,7 @@ def export(ckpt_path, onnx_path):
     assert os.path.exists(ckpt_path), f"Checkpoint path does not exist: {ckpt_path}"
     assert config_file.exists(), f"Config file does not exist: {config_file}"
 
-    os.makedirs(pathlib.Path(onnx_path), exist_ok=True)
+    os.makedirs(pathlib.Path(onnx_path).parent, exist_ok=True)
 
     output_config = pathlib.Path(onnx_path).with_name('config.yaml')
     assert not os.path.exists(onnx_path), f"Error: The file '{onnx_path}' already exists."
