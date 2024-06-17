@@ -6,6 +6,7 @@ import click
 import onnxsim
 import torch
 import yaml
+from onnxruntime.quantization import quantize_dynamic, QuantType
 
 from trainCLS.FVFBLCLS import FBLCLS
 
@@ -47,7 +48,8 @@ def get_config(path: Union[str, pathlib.Path]) -> dict:
 @click.command(help='')
 @click.option('--ckpt_path', required=True, metavar='DIR', help='Path to the checkpoint')
 @click.option('--onnx_path', required=True, metavar='DIR', help='Path to the onnx')
-def export(ckpt_path, onnx_path):
+@click.option('--quantize', required=False, default=False, help='quantize')
+def export(ckpt_path, onnx_path, quantize):
     assert ckpt_path is not None, "Checkpoint directory (ckpt_dir) cannot be None"
 
     config_file = pathlib.Path(ckpt_path).with_name('config.yaml')
@@ -88,6 +90,20 @@ def export(ckpt_path, onnx_path):
         )
         onnx_model, check = onnxsim.simplify(onnx_path, include_subgraph=True)
         assert check, 'Simplified ONNX model could not be validated'
+        print(f'Model saved to: {onnx_path}')
+
+    if quantize:
+        quantized_model_path = onnx_path.replace(".onnx", "_quant.onnx")
+
+        quantize_dynamic(
+            onnx_path,
+            quantized_model_path,
+            weight_type=QuantType.QUInt8
+        )
+
+        print(f'Quantized model saved to: {quantized_model_path}')
+    else:
+        print(f'Model saved to: {onnx_path}')
 
     out_config = {
         'audio_sample_rate': config['audio_sample_rate'],
