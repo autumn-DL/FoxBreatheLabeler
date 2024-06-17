@@ -177,6 +177,7 @@ def start():
                                  \::/____/                \::/    /
                                   ~~                       \/____/ 
                                                                    ''')
+    print('\n')
 
 @torch.no_grad()
 @click.command(help='')
