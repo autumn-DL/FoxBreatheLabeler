@@ -30,7 +30,7 @@ The CPP version has a UI interface that provides a smaller volume for downloadin
 
 2.  Generate AP labels by running textgrid-add-ap
     ```bash
-    python textgrid-add-ap.py --ckpt_path model_folder/xx.ckpt --wav_dir wav_dir --tg_dir tg_dir --tg_out_dir tg_out_dir
+    python textgrid_add_ap.py --ckpt_path model_folder/xx.ckpt --wav_dir wav_dir --tg_dir tg_dir --tg_out_dir tg_out_dir
     
     Option:
         --ckpt_path     str    Path to the checkpoint
