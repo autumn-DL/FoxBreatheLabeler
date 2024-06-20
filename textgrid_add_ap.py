@@ -167,7 +167,6 @@ def find_overlapping_segments(start, end, segments, sp_dur):
 @click.option('--sp_dur', required=False, default=0.1, help='SP fragments below this threshold will adsorb to '
                                                             'adjacent AP, in seconds')
 def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur):
-
     assert ckpt_path is not None, "Checkpoint directory (ckpt_dir) cannot be None"
     assert wav_dir is not None, "WAV directory (wav_dir) cannot be None"
     assert tg_dir is not None, "TextGrid directory (tg_dir) cannot be None"
@@ -195,8 +194,8 @@ def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur)
     for tg_file in tqdm(tg_files):
         filename = os.path.basename(tg_file)
         filename, _ = os.path.splitext(filename)
-        wav_path = f'{wav_dir}/{filename}.wav'
-        out_tg_path = f'{tg_out_dir}/{filename}.TextGrid'
+        wav_path = os.path.join(wav_dir, filename + '.wav')
+        out_tg_path = os.path.join(tg_out_dir, filename + '.TextGrid')
         if os.path.exists(wav_path):
             audio, sr = torchaudio.load(wav_path)
             audio = audio[0][None, :]
@@ -272,6 +271,7 @@ def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur)
                             if ap_start > cursor:
                                 out.append({"start": cursor, "end": ap_start,
                                             "text": "SP"})
+                                cursor = ap_start
                             if i == 0:
                                 if sp_start + sp_dur <= ap_start < sp_end:
                                     out.append({"start": cursor, "end": ap_start,
@@ -301,12 +301,12 @@ def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur)
             tier_phones = tg.IntervalTier(name="phones")
 
             for item in out:
-                tier_words.intervals.append(tg.Interval(item['start'], item['end'], item['text']))
+                tier_words.add(minTime=item['start'], maxTime=item['end'], mark=item['text'])
                 if item['text'] == "SP" or item['text'] == "AP":
-                    tier_phones.intervals.append(tg.Interval(item['start'], item['end'], item['text']))
+                    tier_phones.add(minTime=item['start'], maxTime=item['end'], mark=item['text'])
                     continue
                 for phone in item['phones']:
-                    tier_phones.intervals.append(tg.Interval(phone['start'], phone['end'], phone['text']))
+                    tier_phones.add(minTime=phone['start'], maxTime=phone['end'], mark=phone['text'])
 
             out_tg.tiers.insert(0, tier_words)
             out_tg.tiers.insert(1, tier_phones)
