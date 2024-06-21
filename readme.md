@@ -1,5 +1,6 @@
 # 狐呼标
 
+**[中文文档](README-zh.md)**
 ## Intro
 
 Using ASR to obtain syllables, matching text from lyrics, and generating JSON for Minlabel preloading.
