@@ -6,9 +6,9 @@ Using ASR to obtain syllables, matching text from lyrics, and generating JSON fo
 
 Note: Only label "AP" in the "SP" label of the original tg file, and accuracy is based on the original annotation file.
 
-[Cpp Version (Beta)](https://github.com/openvpi/dataset-tools/releases/tag/20240617.01)
+[Cpp Version (Beta)](https://github.com/openvpi/dataset-tools/releases/tag/20240621.21)
 
-The CPP version has a UI interface that provides a smaller volume for downloading quantization models, but cannot be accelerated using a graphics card.
+The CPP version has a UI interface, but cannot be accelerated using a graphics card.
 
 ## How to use
 
