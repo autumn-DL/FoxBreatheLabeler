@@ -273,7 +273,7 @@ def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ap_dur, sp_dur)
                                             "text": "SP"})
                                 cursor = ap_start
                             if i == 0:
-                                if sp_start + sp_dur <= ap_start < sp_end:
+                                if cursor < ap_start and sp_start + sp_dur <= ap_start < sp_end:
                                     out.append({"start": cursor, "end": ap_start,
                                                 "text": "SP"})
                                     cursor = ap_start
