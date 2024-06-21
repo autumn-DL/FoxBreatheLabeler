@@ -37,7 +37,7 @@ CPP版本拥有ui界面,提供了量化过后体积更小的模型, 但不能使
         --wav_dir       str    Wav音频文件目录 (*.wav).
         --tg_dir        str    Textgrid目录 (*.TextGrid).
         --tg_out_dir    str    输出文件夹
-        --ap_threshold  float  默认: 0.4   呼吸识别阈值  (Option)
-        --ap_dur        float  默认: 0.08  最短的呼吸时间，低于此阈值的会被舍弃, 以秒为单位. (Option)
-        --sp_dur        float  默认: 0.1   低于此阈值的SP将被吸附到临近的AP上, 以秒为单位.   (Option)
+        --ap_threshold  float  默认: 0.4   呼吸识别阈值  (可选)
+        --ap_dur        float  默认: 0.08  最短的呼吸时间，低于此阈值的会被舍弃, 以秒为单位. (可选)
+        --sp_dur        float  默认: 0.1   低于此阈值的SP将被吸附到临近的AP上, 以秒为单位.   (可选)
     ```
