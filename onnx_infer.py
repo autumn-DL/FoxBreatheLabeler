@@ -26,45 +26,6 @@ def run_inference(onnx_model_path, input_data):
     return results
 
 
-def pad_signal(y, padding, pad_mode="constant"):
-    if pad_mode == "constant":
-        left_pad, right_pad = padding
-        y_padded = np.pad(y, (left_pad, right_pad), mode='constant')
-        return y_padded
-    else:
-        raise ValueError("Unsupported pad_mode")
-
-
-def unfold_signal(y, frame_length, hop_length):
-    num_frames = (len(y) - frame_length) // hop_length + 1
-    unfolded = []
-    for i in range(num_frames):
-        start = i * hop_length
-        end = start + frame_length
-        unfolded.append(y[start:end])
-    return np.array(unfolded)
-
-
-def get_music_chunk(
-        y,
-        *,
-        frame_length=2048,
-        hop_length=512,
-        pad_mode="constant",
-):
-    padding = (int((frame_length - hop_length) // 2),
-               int((frame_length - hop_length + 1) // 2))
-
-    y_padded = pad_signal(y, padding, pad_mode)
-    y_f = unfold_signal(y_padded, frame_length, hop_length)
-
-    return y_f
-
-
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
-
-
 def find_segments_dynamic(arr, time_scale, threshold=0.5, max_gap=5, ap_threshold=10):
     """
     Find segments in the array where values are mostly above a given threshold.
@@ -155,10 +116,8 @@ def infer(onnx_path, wav_path, ap_threshold, ap_dur):
     )
     mel_spectrogram = mel_transform(audio).squeeze().numpy()
 
-    mel = get_music_chunk(audio[0].numpy(), frame_length=config['spec_win'], hop_length=config['hop_size'])
-
-    ap_probability = run_inference(onnx_path, [mel])[0]
-    sxp = sigmoid(ap_probability)[0][0]
+    ap_probability = run_inference(onnx_path, [audio[0].numpy()])[0]
+    sxp = ap_probability[0]
 
     segments = find_segments_dynamic(sxp, time_scale, threshold=ap_threshold,
                                      ap_threshold=int(ap_dur / time_scale))
