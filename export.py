@@ -3,6 +3,7 @@ import pathlib
 from typing import Union
 
 import click
+import onnx
 import onnxsim
 import torch
 import torch.nn as nn
@@ -117,6 +118,7 @@ def export(ckpt_path, onnx_path):
         )
         onnx_model, check = onnxsim.simplify(onnx_path, include_subgraph=True)
         assert check, 'Simplified ONNX model could not be validated'
+        onnx.save(onnx_model, onnx_path)
         print(f'Model saved to: {onnx_path}')
 
     out_config = {
