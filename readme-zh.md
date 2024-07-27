@@ -1,5 +1,7 @@
 # 狐呼标
 
+**现在可以使用`htk_lab_add_ap.py`来标注出HTK label中的"AP"和"SP"了**
+
 ## 介绍
 
 使用神经网络模型标注出textgrid文件中的呼吸（AP）。
@@ -62,3 +64,24 @@ CPP版本拥有ui界面, 但不能使用显卡加速。
    ```
 
 2. 通过运行textgrid_add_ap生成AP标注(对clean_tg_dir)
+
+## 关于`htk_lab_add_ap.py`
+
+使用此代码时，请保证HTK lab中包含"SP"或者"pau"。否则输出的HTK lab将与输入的HTK lab一致。
+
+   ```bash
+   python htk_lab_add_ap.py --ckpt_path model_folder/xx.ckpt --wav_dir wav_dir --lab_dir lab_dir --lab_out_dir lab_out_dir
+
+   Options:
+  --ckpt_path DIR       Path to the checkpoint  [required]
+  --wav_dir DIR         Wav files  [required]
+  --lab_dir DIR         Lab files  [required]
+  --lab_out_dir DIR     Lab output dir  [required]
+  --ap_threshold FLOAT  Respiratory probability recognition threshold
+  --ap_dur FLOAT        The shortest duration of breathing, discarded below
+                        this threshold, in seconds
+  --sp_dur FLOAT        SP fragments below this threshold will adsorb to
+                        adjacent AP, in seconds
+  --help                Show this message and exit.
+
+   ```
