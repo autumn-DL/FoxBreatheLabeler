@@ -48,22 +48,22 @@ CPP版本拥有ui界面, 但不能使用显卡加速。
        --sp_dur        float  默认: 0.1   低于此阈值的SP将被吸附到临近的AP上, 以秒为单位.  (可选)
    ```
 
-## 重新标注
+## 重新标注（新增HTK lab支持）
 
-重新标注已包含呼吸（AP）的tg文件。
+重新标注已包含呼吸（AP）的TextGrid/HTK lab文件。
 
 1. 清除原标注中的呼吸.
 
    ```bash
-   python clean_ap.py --tg_dir raw_tg_dir --clean_tg_dir clean_tg_dir
+   python clean_ap.py --label_dir raw_label_dir --clean_label_dir clean_label_dir
    
     选项:
-        --tg_dir        str    Textgrid目录 (*.TextGrid).
-        --clean_tg_dir  str    清空AP、SP的Textgrid目录 (*.TextGrid).
+        --label_dir        str    标注目录 (TextGrid or HTK lab).
+        --clean_tg_dir  str    清空AP、SP的标注目录 (TextGrid or HTK lab).
         --phonemes      str    default: AP,SP,  待清空的音素，以英文逗号分隔.  (可选)
    ```
 
-2. 通过运行textgrid_add_ap生成AP标注(对clean_tg_dir)
+2. 通过运行textgrid_add_ap/htk_lab_add_ap生成AP标注(对clean_label_dir)
 
 ## 关于`htk_lab_add_ap.py`
 
