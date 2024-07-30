@@ -52,7 +52,7 @@ CPP版本拥有ui界面, 但不能使用显卡加速。
 
 重新标注已包含呼吸（AP）的TextGrid/HTK lab文件。
 
-1. 清除原标注中的呼吸.
+1. 清除原标注中的呼吸. （HTK lab请直接清除AP，保留SP。）
 
    ```bash
    python clean_ap.py --label_dir raw_label_dir --clean_label_dir clean_label_dir
