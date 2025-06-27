@@ -205,7 +205,9 @@ def find_overlapping_segments(start, end, segments, sp_dur):
 
 def resolve_overlapping_segments(segments_by_class, probabilities, time_scale):
     """
-    Resolve overlapping segments by selecting the class with highest probability.
+    Resolve overlapping segments using length-based priority.
+    When segments overlap, the longer segment will be kept.
+    GS can appear anywhere and follows the same length-based priority rule.
     
     :param segments_by_class: Dictionary of segments by class from find_segments_from_softmax
     :param probabilities: Array of class probabilities [n_samples, n_classes]
@@ -213,13 +215,15 @@ def resolve_overlapping_segments(segments_by_class, probabilities, time_scale):
     :return: Dictionary of non-overlapping segments by class
     """
     # First, convert all segments to frame indices for easier processing
+    # and store segment durations
     frame_segments = []
     for class_idx, segments in segments_by_class.items():
         for start, end, _ in segments:
             # Convert time to frame indices
             start_frame = int(start / time_scale)
             end_frame = int(end / time_scale)
-            frame_segments.append((start_frame, end_frame, class_idx))
+            duration = end_frame - start_frame + 1  # Include both start and end frames
+            frame_segments.append((start_frame, end_frame, class_idx, duration))
     
     # Sort segments by start frame
     frame_segments.sort(key=lambda x: x[0])
@@ -240,32 +244,33 @@ def resolve_overlapping_segments(segments_by_class, probabilities, time_scale):
             overlap_start = next_seg[0]
             overlap_end = min(current[1], next_seg[1])
             
-            # Determine which class has higher probability in the overlap region
+            # Compare segment durations (use the longer one)
             current_class = current[2]
             next_class = next_seg[2]
+            current_duration = current[3]
+            next_duration = next_seg[3]
             
-            avg_prob_current = np.mean(probabilities[overlap_start:overlap_end+1, current_class])
-            avg_prob_next = np.mean(probabilities[overlap_start:overlap_end+1, next_class])
-            
-            if avg_prob_next > avg_prob_current:
+            # Determine which segment wins based on duration
+            if next_duration > current_duration:
+                # Next segment is longer, it wins
                 # Split the current segment if needed
                 if current[0] < overlap_start:
-                    resolved_segments.append((current[0], overlap_start-1, current_class))
+                    resolved_segments.append((current[0], overlap_start-1, current_class, overlap_start-current[0]))
                 
                 # Next segment wins the overlap
                 if next_seg[1] > current[1]:
                     # Next extends beyond current
-                    current = (overlap_start, next_seg[1], next_class)
+                    current = next_seg
                 else:
                     # Next is contained within current
-                    resolved_segments.append((overlap_start, next_seg[1], next_class))
+                    resolved_segments.append((overlap_start, next_seg[1], next_class, next_seg[1]-overlap_start+1))
                     if current[1] > next_seg[1]:
-                        current = (next_seg[1]+1, current[1], current_class)
+                        current = (next_seg[1]+1, current[1], current_class, current[1]-next_seg[1])
             else:
-                # Current segment wins the overlap
+                # Current segment is longer or equal, it wins
                 if next_seg[1] > current[1]:
-                    # Update current to extend to the end of next
-                    current = (current[0], next_seg[1], current_class)
+                    # Update current to extend to the end of next but keep current class
+                    current = (current[0], next_seg[1], current_class, next_seg[1]-current[0]+1)
         else:
             # No overlap, add current to resolved list and move to next
             resolved_segments.append(current)
@@ -276,24 +281,12 @@ def resolve_overlapping_segments(segments_by_class, probabilities, time_scale):
     
     # Convert back to time and organize by class
     result = {k: [] for k in segments_by_class.keys()}
-    for start_frame, end_frame, class_idx in resolved_segments:
+    for start_frame, end_frame, class_idx, _ in resolved_segments:
         start_time = start_frame * time_scale
         end_time = end_frame * time_scale
         result.setdefault(class_idx, []).append((start_time, end_time, class_idx))
     
     return result
-
-
-def plot(sxp, segments, time_scale):
-    x = range(len(sxp))
-    x = [y * time_scale for y in x]
-    y = sxp
-
-    for start, end in segments:
-        plt.axvspan(start, end, ymin=0, ymax=1, color='red', alpha=0.3)
-
-    plt.plot(x, y)
-    plt.show()
 
 
 @torch.no_grad()
