@@ -3,11 +3,14 @@ import pathlib
 from typing import Union
 
 import click
+import onnx
 import onnxsim
 import torch
+import torch.nn as nn
 import yaml
 
-from trainCLS.FVFBLCLS import FBLCLS
+from Models.CVNT import CVNT
+from trainCLS.baseCLS import BasicCLS
 
 
 def pbase_config(topc: dict, basec_list: list[str]) -> dict:
@@ -43,6 +46,33 @@ def get_config(path: Union[str, pathlib.Path]) -> dict:
     return cfg
 
 
+class FblOnnx(BasicCLS):
+    def __init__(self, config):
+        super().__init__(config)
+        self.model = CVNT(config, output_size=1)
+        self.loss = nn.BCEWithLogitsLoss()
+        self.gn = 0
+
+        model_arg = config['model_arg']
+        self.frame_length = model_arg.get('spec_win', 1024)
+
+        self.hop_length = model_arg.get('hop_size', 882)
+
+        self.padding = (int((self.frame_length - self.hop_length) // 2),
+                        int((self.frame_length - self.hop_length + 1) // 2))
+
+    def forward(self, x, mask=None):
+        y = torch.nn.functional.pad(x, self.padding, "constant")
+        batch_size, num_samples = y.shape
+        num_frames = (num_samples - self.frame_length) // self.hop_length + 1
+        heads = torch.arange(0, num_frames) * self.hop_length  # [N]
+        offsets = torch.arange(0, self.frame_length)  # [L]
+        indices = offsets[None, :] + heads[:, None]  # [N, L]
+        y_f = y[:, indices]
+        p = torch.sigmoid(self.model(y_f, mask=mask)).squeeze(1)
+        return p
+
+
 @torch.no_grad()
 @click.command(help='')
 @click.option('--ckpt_path', required=True, metavar='DIR', help='Path to the checkpoint')
@@ -63,35 +93,36 @@ def export(ckpt_path, onnx_path):
 
     config = get_config(config_file)
 
-    model = FBLCLS(config)
+    model = FblOnnx(config)
     model.load_state_dict(torch.load(ckpt_path, map_location='cpu')['model'])
     model.eval()
 
-    mel = torch.randn(1, 100, 1024)
+    waveform = torch.randn((3, 44100), dtype=torch.float32)
 
     if torch.cuda.is_available():
         model.cuda()
-        mel = mel.cuda()
+        waveform = waveform.cuda()
 
     with torch.no_grad():
         torch.onnx.export(
             model,
-            mel,
+            waveform,
             onnx_path,
-            input_names=['mel'],
+            input_names=['waveform'],
             output_names=['ap_probability'],
             dynamic_axes={
-                'mel': {0: 'batch_size', 1: 'n_samples'},
+                'waveform': {0: 'batch_size', 1: 'n_samples'},
                 'ap_probability': {0: 'batch_size', 1: 'n_samples'}
             },
             opset_version=17
         )
         onnx_model, check = onnxsim.simplify(onnx_path, include_subgraph=True)
         assert check, 'Simplified ONNX model could not be validated'
+        onnx.save(onnx_model, onnx_path)
+        print(f'Model saved to: {onnx_path}')
 
     out_config = {
         'audio_sample_rate': config['audio_sample_rate'],
-        'spec_win': config['spec_win'],
         'hop_size': config['hop_size']
     }
     with open(output_config, 'w') as file:

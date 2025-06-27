@@ -26,45 +26,6 @@ def run_inference(onnx_model_path, input_data):
     return results
 
 
-def pad_signal(y, padding, pad_mode="constant"):
-    if pad_mode == "constant":
-        left_pad, right_pad = padding
-        y_padded = np.pad(y, (left_pad, right_pad), mode='constant')
-        return y_padded
-    else:
-        raise ValueError("Unsupported pad_mode")
-
-
-def unfold_signal(y, frame_length, hop_length):
-    num_frames = (len(y) - frame_length) // hop_length + 1
-    unfolded = []
-    for i in range(num_frames):
-        start = i * hop_length
-        end = start + frame_length
-        unfolded.append(y[start:end])
-    return np.array(unfolded)
-
-
-def get_music_chunk(
-        y,
-        *,
-        frame_length=2048,
-        hop_length=512,
-        pad_mode="constant",
-):
-    padding = (int((frame_length - hop_length) // 2),
-               int((frame_length - hop_length + 1) // 2))
-
-    y_padded = pad_signal(y, padding, pad_mode)
-    y_f = unfold_signal(y_padded, frame_length, hop_length)
-
-    return y_f
-
-
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
-
-
 def find_segments_dynamic(arr, time_scale, threshold=0.5, max_gap=5, ap_threshold=10):
     """
     Find segments in the array where values are mostly above a given threshold.
@@ -103,15 +64,27 @@ def find_segments_dynamic(arr, time_scale, threshold=0.5, max_gap=5, ap_threshol
     return segments
 
 
-def plot(sxp, segments, time_scale):
+def plot(sxp, segments, time_scale, mel_spectrogram=None):
+    fig, ax = plt.subplots()
+
     x = range(len(sxp))
     x = [y * time_scale for y in x]
     y = sxp
 
-    for start, end in segments:
-        plt.axvspan(start, end, ymin=0, ymax=1, color='red', alpha=0.3)
+    mel_spectrogram = 10 * np.log10(mel_spectrogram + 1e-6)  # Convert to log scale
+    mel_spectrogram = (mel_spectrogram - mel_spectrogram.min()) / (
+            mel_spectrogram.max() - mel_spectrogram.min())  # Normalize
+    # Plot the mel spectrogram as background
+    ax.imshow(mel_spectrogram, aspect='auto', origin='lower', cmap='viridis',
+              extent=[0, len(sxp) * time_scale, 0, mel_spectrogram.shape[0]])
 
-    plt.plot(x, y)
+    # Overlay segments on the mel spectrogram
+    for start, end in segments:
+        ax.axvspan(start, end, ymin=0, ymax=1, color='red', alpha=0.2)
+
+    # Overlay the probability curve
+    ax.plot(x, y, color='white')
+
     plt.show()
 
 
@@ -135,14 +108,20 @@ def infer(onnx_path, wav_path, ap_threshold, ap_dur):
     if sr != config['audio_sample_rate']:
         audio = torchaudio.transforms.Resample(sr, config['audio_sample_rate'])(audio)
 
-    mel = get_music_chunk(audio[0].numpy(), frame_length=config['spec_win'], hop_length=config['hop_size'])
+    mel_transform = torchaudio.transforms.MelSpectrogram(
+        sample_rate=config['audio_sample_rate'],
+        n_fft=1024,
+        hop_length=256,
+        n_mels=128
+    )
+    mel_spectrogram = mel_transform(audio).squeeze().numpy()
 
-    ap_probability = run_inference(onnx_path, [mel])[0]
-    sxp = sigmoid(ap_probability)[0][0]
+    ap_probability = run_inference(onnx_path, [audio[0].numpy()])[0]
+    sxp = ap_probability[0]
 
     segments = find_segments_dynamic(sxp, time_scale, threshold=ap_threshold,
                                      ap_threshold=int(ap_dur / time_scale))
-    plot(sxp, segments, time_scale)
+    plot(sxp * 128, segments, time_scale, mel_spectrogram)
 
 
 if __name__ == '__main__':
