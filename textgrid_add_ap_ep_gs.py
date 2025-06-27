@@ -73,86 +73,101 @@ def get_music_chunk(
     return y_f
 
 
-def find_segments_from_softmax(arr, time_scale, min_segment_threshold=10, max_gap=5, class_thresholds=None, use_argmax=False):
+def find_segments_from_softmax(arr, time_scale, min_segment_threshold=10, max_gap=5, class_thresholds=None, use_argmax=False, disabled_classes=None):
     """
-    Find segments in softmax output array for each class.
-
-    :param arr: numpy array of softmax probabilities with shape [n_samples, n_classes]
-    :param time_scale: scale to convert frame index to time
-    :param min_segment_threshold: minimum segment length threshold (in frames)
-    :param max_gap: maximum allowed gap within a segment
-    :param class_thresholds: dictionary of thresholds for each class, e.g. {1: 0.4, 2: 0.3, 3: 0.5}
-    :param use_argmax: if True, assigns each frame to the class with highest probability
-    :return: dict of lists of tuples (start_time, end_time, class_index) of segments
-    """
-    segments_by_class = {}
-    n_frames, n_classes = arr.shape
-
-    if use_argmax:
-        # Method 1: Assign each frame to the class with highest probability
-        predictions = np.argmax(arr, axis=1)  # Get class with highest probability for each frame
-        
-        # Only consider non-zero (non-background) classes
-        for class_idx in range(1, n_classes):
-            segments = []
-            start = None
-            gap_count = 0
-            
-            for i in range(n_frames):
-                if predictions[i] == class_idx:
-                    if start is None:
-                        start = i
-                    gap_count = 0
-                else:
-                    if start is not None:
-                        if gap_count < max_gap:
-                            gap_count += 1
-                        else:
-                            end = i - gap_count - 1
-                            if end >= start and (end - start) >= min_segment_threshold:
-                                segments.append((start * time_scale, end * time_scale, class_idx))
-                            start = None
-                            gap_count = 0
-            
-            # Handle segment at the end of the array
-            if start is not None and (n_frames - start) >= min_segment_threshold:
-                segments.append((start * time_scale, (n_frames - 1) * time_scale, class_idx))
-            
-            segments_by_class[class_idx] = segments
-    else:
-        # Method 2: Use class-specific thresholds
-        if class_thresholds is None:
-            class_thresholds = {1: 0.4, 2: 0.3, 3: 0.4}  # Default thresholds
-        
-        for class_idx in range(1, n_classes):
-            threshold = class_thresholds.get(class_idx, 0.4)  # Default to 0.4 if not specified
-            segments = []
-            start = None
-            gap_count = 0
-            
-            for i in range(n_frames):
-                if arr[i, class_idx] >= threshold:
-                    if start is None:
-                        start = i
-                    gap_count = 0
-                else:
-                    if start is not None:
-                        if gap_count < max_gap:
-                            gap_count += 1
-                        else:
-                            end = i - gap_count - 1
-                            if end >= start and (end - start) >= min_segment_threshold:
-                                segments.append((start * time_scale, end * time_scale, class_idx))
-                            start = None
-                            gap_count = 0
-            
-            # Handle segment at the end of the array
-            if start is not None and (n_frames - start) >= min_segment_threshold:
-                segments.append((start * time_scale, (n_frames - 1) * time_scale, class_idx))
-            
-            segments_by_class[class_idx] = segments
+    Find segments from softmax probabilities.
     
-    return segments_by_class
+    :param arr: Array of softmax probabilities [n_samples, n_classes]
+    :param time_scale: Time scale for each frame
+    :param min_segment_threshold: Minimum segment duration in frames
+    :param max_gap: Maximum allowed gap within a segment
+    :param class_thresholds: Dictionary of thresholds per class {class_idx: threshold}
+    :param use_argmax: If True, use argmax for classification, otherwise use thresholds
+    :param disabled_classes: Set of class indices to disable/ignore
+    :return: Dictionary of segments by class {class_idx: [(start, end, class_idx), ...]}
+    """
+    if class_thresholds is None:
+        class_thresholds = {1: 0.5, 2: 0.5, 3: 0.5}  # Default thresholds
+    
+    if disabled_classes is None:
+        disabled_classes = set()  # No disabled classes by default
+    
+    segments = {}
+    
+    # Skip class 0 (None/background)
+    for class_idx in range(1, arr.shape[1]):
+        # Skip disabled classes
+        if class_idx in disabled_classes:
+            segments[class_idx] = []
+            continue
+            
+        if use_argmax:
+            # Use argmax approach
+            class_probs = np.zeros_like(arr[:, 0])
+            argmax_indices = np.argmax(arr, axis=1)
+            class_probs[argmax_indices == class_idx] = 1.0
+            
+            # Threshold is always 0.5 for binary case
+            segments_for_class = find_segments_dynamic(
+                class_probs,
+                time_scale,
+                threshold=0.5,
+                max_gap=max_gap,
+                ap_threshold=min_segment_threshold
+            )
+        else:
+            # Use threshold approach
+            threshold = class_thresholds.get(class_idx, 0.5)
+            segments_for_class = find_segments_dynamic(
+                arr[:, class_idx],
+                time_scale,
+                threshold=threshold,
+                max_gap=max_gap,
+                ap_threshold=min_segment_threshold
+            )
+        
+        # Add class index to each segment
+        segments[class_idx] = [(start, end, class_idx) for start, end in segments_for_class]
+    
+    return segments
+
+
+def find_segments_dynamic(probabilities, time_scale, threshold, max_gap, ap_threshold):
+    """
+    Find segments from probabilities.
+    
+    :param probabilities: Array of probabilities [n_samples]
+    :param time_scale: Time scale for each frame
+    :param threshold: Threshold for segment detection
+    :param max_gap: Maximum allowed gap within a segment
+    :param ap_threshold: Minimum segment duration in frames
+    :return: List of segments [(start, end), ...]
+    """
+    segments = []
+    start = None
+    gap_count = 0
+    
+    for i in range(len(probabilities)):
+        if probabilities[i] >= threshold:
+            if start is None:
+                start = i
+            gap_count = 0
+        else:
+            if start is not None:
+                if gap_count < max_gap:
+                    gap_count += 1
+                else:
+                    end = i - gap_count - 1
+                    if end >= start and (end - start) >= ap_threshold:
+                        segments.append((start * time_scale, end * time_scale))
+                    start = None
+                    gap_count = 0
+    
+    # Handle segment at the end of the array
+    if start is not None and (len(probabilities) - start) >= ap_threshold:
+        segments.append((start * time_scale, (len(probabilities) - 1) * time_scale))
+    
+    return segments
 
 
 def find_overlapping_segments(start, end, segments, sp_dur):
@@ -188,6 +203,87 @@ def find_overlapping_segments(start, end, segments, sp_dur):
     return merged_segments
 
 
+def resolve_overlapping_segments(segments_by_class, probabilities, time_scale):
+    """
+    Resolve overlapping segments by selecting the class with highest probability.
+    
+    :param segments_by_class: Dictionary of segments by class from find_segments_from_softmax
+    :param probabilities: Array of class probabilities [n_samples, n_classes]
+    :param time_scale: Time scale factor
+    :return: Dictionary of non-overlapping segments by class
+    """
+    # First, convert all segments to frame indices for easier processing
+    frame_segments = []
+    for class_idx, segments in segments_by_class.items():
+        for start, end, _ in segments:
+            # Convert time to frame indices
+            start_frame = int(start / time_scale)
+            end_frame = int(end / time_scale)
+            frame_segments.append((start_frame, end_frame, class_idx))
+    
+    # Sort segments by start frame
+    frame_segments.sort(key=lambda x: x[0])
+    
+    # Check for overlaps and resolve them
+    resolved_segments = []
+    if not frame_segments:
+        return {k: [] for k in segments_by_class.keys()}
+    
+    current = frame_segments[0]
+    
+    for i in range(1, len(frame_segments)):
+        next_seg = frame_segments[i]
+        
+        # Check if there's an overlap
+        if next_seg[0] <= current[1]:
+            # There's an overlap
+            overlap_start = next_seg[0]
+            overlap_end = min(current[1], next_seg[1])
+            
+            # Determine which class has higher probability in the overlap region
+            current_class = current[2]
+            next_class = next_seg[2]
+            
+            avg_prob_current = np.mean(probabilities[overlap_start:overlap_end+1, current_class])
+            avg_prob_next = np.mean(probabilities[overlap_start:overlap_end+1, next_class])
+            
+            if avg_prob_next > avg_prob_current:
+                # Split the current segment if needed
+                if current[0] < overlap_start:
+                    resolved_segments.append((current[0], overlap_start-1, current_class))
+                
+                # Next segment wins the overlap
+                if next_seg[1] > current[1]:
+                    # Next extends beyond current
+                    current = (overlap_start, next_seg[1], next_class)
+                else:
+                    # Next is contained within current
+                    resolved_segments.append((overlap_start, next_seg[1], next_class))
+                    if current[1] > next_seg[1]:
+                        current = (next_seg[1]+1, current[1], current_class)
+            else:
+                # Current segment wins the overlap
+                if next_seg[1] > current[1]:
+                    # Update current to extend to the end of next
+                    current = (current[0], next_seg[1], current_class)
+        else:
+            # No overlap, add current to resolved list and move to next
+            resolved_segments.append(current)
+            current = next_seg
+    
+    # Add the last segment
+    resolved_segments.append(current)
+    
+    # Convert back to time and organize by class
+    result = {k: [] for k in segments_by_class.keys()}
+    for start_frame, end_frame, class_idx in resolved_segments:
+        start_time = start_frame * time_scale
+        end_time = end_frame * time_scale
+        result.setdefault(class_idx, []).append((start_time, end_time, class_idx))
+    
+    return result
+
+
 def plot(sxp, segments, time_scale):
     x = range(len(sxp))
     x = [y * time_scale for y in x]
@@ -214,8 +310,14 @@ def plot(sxp, segments, time_scale):
                                                              'this threshold, in seconds')
 @click.option('--sp_dur', required=False, default=0.1, help='SP fragments below this threshold will adsorb to '
                                                             'adjacent non-SP segments, in seconds')
+@click.option('--disable_ap', required=False, is_flag=True,
+              help='Disable detection of AP class')
+@click.option('--disable_ep', required=False, is_flag=True,
+              help='Disable detection of EP class') 
+@click.option('--disable_gs', required=False, is_flag=True,
+              help='Disable detection of GS class')
 def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ep_threshold, 
-           gs_threshold, use_argmax, ap_dur, sp_dur):
+           gs_threshold, use_argmax, ap_dur, sp_dur, disable_ap, disable_ep, disable_gs):
     assert ckpt_path is not None, "Checkpoint directory (ckpt_dir) cannot be None"
     assert wav_dir is not None, "WAV directory (wav_dir) cannot be None"
     assert tg_dir is not None, "TextGrid directory (tg_dir) cannot be None"
@@ -272,15 +374,32 @@ def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ep_threshold,
                 2: ep_threshold,  # EP
                 3: gs_threshold   # GS
             }
-
+            
+            # Set up disabled classes based on flags
+            disabled_classes = set()
+            if disable_ap:
+                disabled_classes.add(1)
+            if disable_ep:
+                disabled_classes.add(2)
+            if disable_gs:
+                disabled_classes.add(3)
+                
+            if disabled_classes:
+                print(f"Disabled classes: {[inv_token_map.get(idx) for idx in disabled_classes]}")
+            
             # Get segments for each class using either argmax or class-specific thresholds
             class_segments = find_segments_from_softmax(
                 sxp, 
                 time_scale, 
                 min_segment_threshold=int(ap_dur / time_scale),
                 class_thresholds=class_thresholds,
-                use_argmax=use_argmax
+                use_argmax=use_argmax,
+                disabled_classes=disabled_classes
             )
+            
+            # Resolve any overlapping segments if using threshold mode
+            if not use_argmax:
+                class_segments = resolve_overlapping_segments(class_segments, sxp, time_scale)
             
             # Combine all segments and sort them by start time
             all_segments = []
