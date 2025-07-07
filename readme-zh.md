@@ -1,5 +1,7 @@
 # 狐呼标
 
+**现在可以使用`htk_lab_add_ap.py`来标注出HTK label中的"AP"和"SP"了**
+
 ## 介绍
 
 使用神经网络模型标注出textgrid文件中的呼吸（AP）。
@@ -46,19 +48,40 @@ CPP版本拥有ui界面, 但不能使用显卡加速。
        --sp_dur        float  默认: 0.1   低于此阈值的SP将被吸附到临近的AP上, 以秒为单位.  (可选)
    ```
 
-## 重新标注
+## 重新标注（新增HTK lab支持）
 
-重新标注已包含呼吸（AP）的tg文件。
+重新标注已包含呼吸（AP）的TextGrid/HTK lab文件。
 
-1. 清除原标注中的呼吸.
+1. 清除原标注中的呼吸. （HTK lab请直接清除AP，保留SP。）
 
    ```bash
-   python clean_ap.py --tg_dir raw_tg_dir --clean_tg_dir clean_tg_dir
+   python clean_ap.py --label_dir raw_label_dir --clean_label_dir clean_label_dir
    
     选项:
-        --tg_dir        str    Textgrid目录 (*.TextGrid).
-        --clean_tg_dir  str    清空AP、SP的Textgrid目录 (*.TextGrid).
+        --label_dir        str    标注目录 (TextGrid or HTK lab).
+        --clean_tg_dir  str    清空AP、SP的标注目录 (TextGrid or HTK lab).
         --phonemes      str    default: AP,SP,  待清空的音素，以英文逗号分隔.  (可选)
    ```
 
-2. 通过运行textgrid_add_ap生成AP标注(对clean_tg_dir)
+2. 通过运行textgrid_add_ap/htk_lab_add_ap生成AP标注(对clean_label_dir)
+
+## 关于`htk_lab_add_ap.py`
+
+使用此代码时，请保证HTK lab中包含"SP"或者"pau"。否则输出的HTK lab将与输入的HTK lab一致。
+
+   ```bash
+   python htk_lab_add_ap.py --ckpt_path model_folder/xx.ckpt --wav_dir wav_dir --lab_dir lab_dir --lab_out_dir lab_out_dir
+
+   Options:
+  --ckpt_path DIR       Path to the checkpoint  [required]
+  --wav_dir DIR         Wav files  [required]
+  --lab_dir DIR         Lab files  [required]
+  --lab_out_dir DIR     Lab output dir  [required]
+  --ap_threshold FLOAT  Respiratory probability recognition threshold
+  --ap_dur FLOAT        The shortest duration of breathing, discarded below
+                        this threshold, in seconds
+  --sp_dur FLOAT        SP fragments below this threshold will adsorb to
+                        adjacent AP, in seconds
+  --help                Show this message and exit.
+
+   ```

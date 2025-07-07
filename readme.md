@@ -2,6 +2,8 @@
 
 **[中文文档](readme-zh.md)**
 
+**Now You can label "AP" and "SP" with HTK label file! PLEASE use `htk_lab_add_ap.py` to label it!**
+
 ## Intro
 
 Use a neural network model to annotate the breathing (AP) in the textgrid file.
@@ -65,3 +67,24 @@ ReLabel the TG file with breathing.
    ```
 
 2. Generate AP labels by running textgrid-add-ap(to clean_tg_dir)
+
+## About `htk_lab_add_ap.py`
+
+You can use "SP" or "pau" in HTK label file with it.
+
+   ```bash
+   python htk_lab_add_ap.py --ckpt_path model_folder/xx.ckpt --wav_dir wav_dir --lab_dir lab_dir --lab_out_dir lab_out_dir
+
+   Options:
+  --ckpt_path DIR       Path to the checkpoint  [required]
+  --wav_dir DIR         Wav files  [required]
+  --lab_dir DIR         Lab files  [required]
+  --lab_out_dir DIR     Lab output dir  [required]
+  --ap_threshold FLOAT  Respiratory probability recognition threshold
+  --ap_dur FLOAT        The shortest duration of breathing, discarded below
+                        this threshold, in seconds
+  --sp_dur FLOAT        SP fragments below this threshold will adsorb to
+                        adjacent AP, in seconds
+  --help                Show this message and exit.
+
+   ```
