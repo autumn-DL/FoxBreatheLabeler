@@ -317,7 +317,7 @@ def export(ckpt_path, wav_dir, tg_dir, tg_out_dir, ap_threshold, ep_threshold,
     assert tg_out_dir is not None, "TextGrid output directory (tg_out_dir) cannot be None"
     assert tg_dir != tg_out_dir, ("TextGrid directory (tg_dir) and TextGrid output directory (tg_out_dir) cannot be "
                                   "the same")
-
+    disable_gs=True
     config_file = pathlib.Path(ckpt_path).with_name('config.yaml')
 
     assert os.path.exists(ckpt_path), f"Checkpoint path does not exist: {ckpt_path}"
